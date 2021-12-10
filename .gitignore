@@ -8,3 +8,5 @@ dist
 /site
 coverage.out
 *.coverprofile
+.vscode
+

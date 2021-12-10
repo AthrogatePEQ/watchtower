@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/internal/meta"
 	"math"
 	"net/http"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/meta"
 
 	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/api/update"
@@ -40,6 +41,7 @@ var (
 	lifecycleHooks bool
 	rollingRestart bool
 	scope          string
+	useInfluxdb    bool
 	// Set on build using ldflags
 )
 
@@ -149,12 +151,22 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	)
 
 	notifier = notifications.NewNotifier(cmd)
+
+	useInfluxdb, _ = f.GetBool("influxdb")
+	if useInfluxdb {
+		err = notifications.InitInfluxdbNotifier(cmd)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	}
 }
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
 	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
+	debug, _ := c.PersistentFlags().GetBool("debug")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
@@ -176,6 +188,11 @@ func Run(c *cobra.Command, names []string) {
 		notifier.Close()
 		os.Exit(0)
 		return
+	} else {
+		if debug {
+			metric := runUpdatesWithNotifications(filter)
+			metrics.RegisterScan(metric)
+		}
 	}
 
 	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
@@ -293,7 +310,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
-			startupLog.Info("Running a one time update.")
+		startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}
@@ -381,6 +398,12 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		"Scanned": metricResults.Scanned,
 		"Updated": metricResults.Updated,
 		"Failed":  metricResults.Failed,
+		"Stale":   metricResults.Stale,
 	}).Info("Session done")
+
+	if useInfluxdb {
+		notifications.UpdateInfluxdbStats(result)
+	}
+
 	return metricResults
 }

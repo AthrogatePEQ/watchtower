@@ -167,6 +167,30 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_SCOPE"),
 		"Defines a monitoring scope for the Watchtower instance.")
+	flags.Bool(
+		"influxdb",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_INFLUXDB"),
+		"Send Stats to InfluxDB")
+	flags.String(
+		"influxdb-host",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_HOST"),
+		"InfluxDB Hostname")
+	flags.String(
+		"influxdb-auth",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_AUTH"),
+		"InfluxDB Hostname")
+	flags.String(
+		"influxdb-database",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_DATABASE"),
+		"InfluxDB Database")
+	flags.String(
+		"influxdb-retention-policy",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_RETENTION_POLICY"),
+		"InfluxDB Measurement")
+	flags.String(
+		"influxdb-measurement",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_MEASUREMENT"),
+		"InfluxDB Measurement")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -324,7 +348,6 @@ Should only be used for testing.`)
 		"warn-on-head-failure",
 		viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
 		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
-
 }
 
 // SetDefaults provides default values for environment variables

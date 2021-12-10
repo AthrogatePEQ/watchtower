@@ -13,6 +13,7 @@ type Metric struct {
 	Scanned int
 	Updated int
 	Failed  int
+	Stale   int
 }
 
 // Metrics is the handler processing all individual scan metrics
@@ -21,6 +22,7 @@ type Metrics struct {
 	scanned prometheus.Gauge
 	updated prometheus.Gauge
 	failed  prometheus.Gauge
+	stale   prometheus.Gauge
 	total   prometheus.Counter
 	skipped prometheus.Counter
 }
@@ -29,9 +31,9 @@ type Metrics struct {
 func NewMetric(report types.Report) *Metric {
 	return &Metric{
 		Scanned: len(report.Scanned()),
-		// Note: This is for backwards compatibility. ideally, stale containers should be counted separately
-		Updated: len(report.Updated()) + len(report.Stale()),
+		Updated: len(report.Updated()),
 		Failed:  len(report.Failed()),
+		Stale:   len(report.Stale()),
 	}
 }
 
@@ -63,6 +65,10 @@ func Default() *Metrics {
 		failed: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "watchtower_containers_failed",
 			Help: "Number of containers where update failed during the last scan",
+		}),
+		stale: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "watchtower_containers_stale",
+			Help: "Number of containers identified that could be updated during the last scan",
 		}),
 		total: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "watchtower_scans_total",
@@ -96,6 +102,7 @@ func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 			metrics.scanned.Set(0)
 			metrics.updated.Set(0)
 			metrics.failed.Set(0)
+			metrics.stale.Set(0)
 			continue
 		}
 		// Update metrics with the new values
@@ -103,5 +110,6 @@ func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 		metrics.scanned.Set(float64(change.Scanned))
 		metrics.updated.Set(float64(change.Updated))
 		metrics.failed.Set(float64(change.Failed))
+		metrics.stale.Set(float64(change.Stale))
 	}
 }

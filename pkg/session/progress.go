@@ -31,6 +31,11 @@ func (m Progress) AddScanned(cont types.Container, newImage types.ImageID) {
 	m.Add(UpdateFromContainer(cont, newImage, ScannedState))
 }
 
+// UpdateStale
+func (m Progress) AddStale(cont types.Container, newImage types.ImageID) {
+	m.Add(UpdateFromContainer(cont, newImage, ScannedState))
+}
+
 // UpdateFailed updates the containers passed, setting their state as failed with the supplied error
 func (m Progress) UpdateFailed(failures map[types.ContainerID]error) {
 	for id, err := range failures {

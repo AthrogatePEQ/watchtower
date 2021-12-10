@@ -2,6 +2,7 @@ package actions
 
 import (
 	"errors"
+
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -46,6 +47,10 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 					log.Tracef("Image config: %#v", imageInfo.Config)
 				}
 			}
+		}
+
+		if stale {
+			progress.AddStale(targetContainer, newestImage)
 		}
 
 		if err != nil {

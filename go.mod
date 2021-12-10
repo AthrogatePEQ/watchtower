@@ -10,6 +10,7 @@ require (
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/docker/docker-credential-helpers v0.6.1 // indirect
 	github.com/docker/go-connections v0.4.0
+	github.com/influxdata/influxdb-client-go/v2 v2.6.0 // indirect
 	github.com/johntdyer/slack-go v0.0.0-20180213144715-95fac1160b22 // indirect
 	github.com/johntdyer/slackrus v0.0.0-20180518184837-f7aae3243a07
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
