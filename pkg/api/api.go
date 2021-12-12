@@ -2,8 +2,9 @@ package api
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const tokenMissingMsg = "api token is empty or has not been set. exiting"
@@ -12,13 +13,22 @@ const tokenMissingMsg = "api token is empty or has not been set. exiting"
 type API struct {
 	Token       string
 	hasHandlers bool
+	Port        string
 }
 
 // New is a factory function creating a new API instance
-func New(token string) *API {
+func New(token string, port ...string) *API {
+	listenPort := ":8080"
+	if len(port) > 0 {
+		listenPort = port[0]
+	}
+	if listenPort[0:1] != ":" {
+		listenPort = ":" + listenPort
+	}
 	return &API{
 		Token:       token,
 		hasHandlers: false,
+		Port:        listenPort,
 	}
 }
 
@@ -63,15 +73,15 @@ func (api *API) Start(block bool) error {
 	}
 
 	if block {
-		runHTTPServer()
+		runHTTPServer(api)
 	} else {
 		go func() {
-			runHTTPServer()
+			runHTTPServer(api)
 		}()
 	}
 	return nil
 }
 
-func runHTTPServer() {
-	log.Fatal(http.ListenAndServe(":8080", nil))
+func runHTTPServer(api *API) {
+	log.Fatal(http.ListenAndServe(api.Port, nil))
 }

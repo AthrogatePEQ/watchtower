@@ -153,7 +153,6 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	notifier = notifications.NewNotifier(cmd)
 
 	useInfluxdb, _ = f.GetBool("influxdb")
-log.Info("Use influxdb: " + strconv.FormatBool(useInfluxdb))
 	if useInfluxdb {
 		err = notifications.InitInfluxdbNotifier(cmd)
 		if err != nil {
@@ -167,11 +166,12 @@ log.Info("Use influxdb: " + strconv.FormatBool(useInfluxdb))
 func Run(c *cobra.Command, names []string) {
 	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
-	debug, _ := c.PersistentFlags().GetBool("debug")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	apiPort, _ := c.PersistentFlags().GetString("http-api-port")
+	scanOnStartup, _ := c.PersistentFlags().GetBool("scan-on-startup")
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
@@ -190,7 +190,7 @@ func Run(c *cobra.Command, names []string) {
 		os.Exit(0)
 		return
 	} else {
-		if debug {
+		if scanOnStartup {
 			metric := runUpdatesWithNotifications(filter)
 			metrics.RegisterScan(metric)
 		}
@@ -204,7 +204,7 @@ func Run(c *cobra.Command, names []string) {
 	updateLock := make(chan bool, 1)
 	updateLock <- true
 
-	httpAPI := api.New(apiToken)
+	httpAPI := api.New(apiToken, apiPort)
 
 	if enableUpdateAPI {
 		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)

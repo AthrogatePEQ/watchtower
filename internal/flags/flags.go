@@ -106,6 +106,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Run once now and exit")
 
 	flags.BoolP(
+		"scan-on-startup",
+		"",
+		viper.GetBool("WATCHTOWER_SCAN_ON_STARTUP"),
+		"Run once now and exit")
+
+	flags.BoolP(
 		"include-restarting",
 		"",
 		viper.GetBool("WATCHTOWER_INCLUDE_RESTARTING"),
@@ -147,6 +153,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Runs Watchtower with the Prometheus metrics API enabled")
 
 	flags.StringP(
+		"http-api-port",
+		"",
+		viper.GetString("WATCHTOWER_HTTP_API_PORT"),
+		"Port for the HTTP metrics server to listen on")
+
+	flags.StringP(
 		"http-api-token",
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
@@ -184,13 +196,13 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_DATABASE"),
 		"InfluxDB Database")
 	flags.String(
-		"influxdb-retention-policy",
-		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_RETENTION_POLICY"),
-		"InfluxDB Measurement")
-	flags.String(
 		"influxdb-measurement",
 		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_MEASUREMENT"),
 		"InfluxDB Measurement")
+	flags.String(
+		"influxdb-retention-policy",
+		viper.GetString("WATCHTOWER_NOTIFICATION_INFLUXDB_RETENTION_POLICY"),
+		"InfluxDB Retention Policy (defaults to 'autogen'")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
