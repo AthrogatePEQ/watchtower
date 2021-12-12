@@ -153,6 +153,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	notifier = notifications.NewNotifier(cmd)
 
 	useInfluxdb, _ = f.GetBool("influxdb")
+log.Info("Use influxdb: " + strconv.FormatBool(useInfluxdb))
 	if useInfluxdb {
 		err = notifications.InitInfluxdbNotifier(cmd)
 		if err != nil {

@@ -10,6 +10,7 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/spf13/cobra"
+        log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -79,6 +80,17 @@ func UpdateInfluxdbStats(report t.Report) {
 		AddField("fresh", len(report.Fresh())).
 		AddField("stale-containers", staleContainers).
 		SetTime(time.Now())
+
+        log.Debug(log.Fields{
+           "host": influxdbHostnameTag,
+           "scanned": len(report.Scanned()),
+	   "updated": len(report.Updated()),
+	   "failed": len(report.Failed()),
+	   "skipped": len(report.Skipped()),
+	   "stale": len(report.Stale()),
+	   "fresh": len(report.Fresh()),
+	   "stale-containers": staleContainers,
+        })
 
 	// write point immediately
 	influxdbWiteAPI.WritePoint(context.Background(), p)
