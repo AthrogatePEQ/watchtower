@@ -189,11 +189,6 @@ func Run(c *cobra.Command, names []string) {
 		notifier.Close()
 		os.Exit(0)
 		return
-	} else {
-		if scanOnStartup {
-			metric := runUpdatesWithNotifications(filter)
-			metrics.RegisterScan(metric)
-		}
 	}
 
 	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
@@ -214,6 +209,11 @@ func Run(c *cobra.Command, names []string) {
 		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
 		}
+	}
+
+	if scanOnStartup {
+		metric := runUpdatesWithNotifications(filter)
+		metrics.RegisterScan(metric)
 	}
 
 	if enableMetricsAPI {
@@ -309,7 +309,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	if !sched.IsZero() {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
-		startupLog.Info("Note that the first check will be performed in " + until)
+		startupLog.Info("Note that the next check will be performed in " + until)
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
 		startupLog.Info("Running a one time update.")
 	} else {
