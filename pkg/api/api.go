@@ -19,7 +19,7 @@ type API struct {
 // New is a factory function creating a new API instance
 func New(token string, port ...string) *API {
 	listenPort := ":8080"
-	if len(port) > 0 {
+	if len(port) > 0 && port[0] != "" {
 		listenPort = port[0]
 	}
 	if listenPort[0:1] != ":" {
