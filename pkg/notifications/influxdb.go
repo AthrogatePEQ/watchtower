@@ -1,28 +1,61 @@
 package notifications
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 	"os"
-	"time"
+	"strconv"
+	"strings"
 
 	t "github.com/containrrr/watchtower/pkg/types"
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/influxdata/influxdb-client-go/v2/api"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-        log "github.com/sirupsen/logrus"
 )
+
+type InfluxdbStat struct {
+	hostname         string
+	measurement      string
+	scanned          int
+	fresh            int
+	updated          int
+	failed           int
+	skipped          int
+	stale            int
+	stale_containers string
+}
 
 var (
 	influxdbHost            string
+	influxdbAPI             string
 	influxdbAuth            string
 	influxdbDatabase        string
 	influxdbRetentionPolicy string
 	influxdbMeasurement     string
 	influxdbHostnameTag     string
-	influxdbClient          influxdb2.Client
-	influxdbWiteAPI         api.WriteAPIBlocking
+	influxdbClient          *http.Client
 )
+
+func NewInfluxdbStat(report t.Report) *InfluxdbStat {
+	staleContainers := ""
+	for _, container := range report.Stale() {
+		if staleContainers != "" {
+			staleContainers += ", "
+		}
+		staleContainers += container.Name()
+	}
+	return &InfluxdbStat{
+		hostname:         influxdbHostnameTag,
+		measurement:      influxdbMeasurement,
+		scanned:          len(report.Scanned()),
+		updated:          len(report.Updated()),
+		failed:           len(report.Failed()),
+		skipped:          len(report.Skipped()),
+		stale:            len(report.Stale()),
+		fresh:            len(report.Fresh()),
+		stale_containers: staleContainers,
+	}
+
+}
 
 func InitInfluxdbNotifier(cmd *cobra.Command) error {
 	f := cmd.PersistentFlags()
@@ -52,47 +85,49 @@ func InitInfluxdbNotifier(cmd *cobra.Command) error {
 		return fmt.Errorf("%v is a required when --influxdb is supplied", "--influxdb-measurement")
 	}
 
-	influxdbClient = influxdb2.NewClient(influxdbHost, influxdbAuth)
-	influxdbWiteAPI = influxdbClient.WriteAPIBlocking("", influxdbDatabase+"/"+influxdbRetentionPolicy)
+	influxdbClient = &http.Client{}
 
 	return nil
 }
 
 func UpdateInfluxdbStats(report t.Report) {
 
-	staleContainers := ""
+	stat := NewInfluxdbStat(report)
 
-	for _, container := range report.Stale() {
-		if staleContainers != "" {
-			staleContainers += ", "
-		}
-		staleContainers += container.Name()
-	}
-
-	// Create point using fluent style
-	p := influxdb2.NewPointWithMeasurement(influxdbMeasurement).
-		AddTag("host", influxdbHostnameTag).
-		AddField("scanned", len(report.Scanned())).
-		AddField("updated", len(report.Updated())).
-		AddField("failed", len(report.Failed())).
-		AddField("skipped", len(report.Skipped())).
-		AddField("stale", len(report.Stale())).
-		AddField("fresh", len(report.Fresh())).
-		AddField("stale-containers", staleContainers).
-		SetTime(time.Now())
-
-        log.Debug(log.Fields{
-           "host": influxdbHostnameTag,
-           "scanned": len(report.Scanned()),
-	   "updated": len(report.Updated()),
-	   "failed": len(report.Failed()),
-	   "skipped": len(report.Skipped()),
-	   "stale": len(report.Stale()),
-	   "fresh": len(report.Fresh()),
-	   "stale-containers": staleContainers,
-        })
+	log.Debug(log.Fields{
+		"host":             stat.hostname,
+		"scanned":          stat.scanned,
+		"updated":          stat.updated,
+		"failed":           stat.failed,
+		"skipped":          stat.skipped,
+		"stale":            stat.stale,
+		"fresh":            stat.fresh,
+		"stale-containers": stat.stale_containers,
+	})
 
 	// write point immediately
-	influxdbWiteAPI.WritePoint(context.Background(), p)
 
+	body := stat.measurement + ",host=" + stat.hostname + " scanned=" + strconv.Itoa(stat.scanned) + ",updated=" + strconv.Itoa(stat.updated) + ",failed=" + strconv.Itoa(stat.failed) + ",skipped=" + strconv.Itoa(stat.skipped) + ",fresh=" + strconv.Itoa(stat.fresh) + ",stale=" + strconv.Itoa(stat.stale) + ",stale_containers=\"" + stat.stale_containers + "\""
+	reader := strings.NewReader(body)
+
+	// v2.0
+	//url := proto + hostname + ":" + port + path + "?db=" + org + "/" + bucket
+
+	// v1.8
+	url := influxdbHost + influxdbAPI + "?db=" + influxdbDatabase + "&rp=" + influxdbRetentionPolicy
+
+	request, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	resp, err := influxdbClient.Do(request)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if resp != nil {
+		log.Debug(resp.Status)
+		log.Debug(resp.Body)
+	}
 }
