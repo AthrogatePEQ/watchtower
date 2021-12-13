@@ -60,10 +60,12 @@ func NewInfluxdbStat(report t.Report) *InfluxdbStat {
 func InitInfluxdbNotifier(cmd *cobra.Command) error {
 	f := cmd.PersistentFlags()
 	influxdbHostnameTag, _ = f.GetString("notifications-hostname")
+	log.Debug("influxdbHostnameTag: " + influxdbHostnameTag)
 
 	if influxdbHostnameTag == "" {
 		influxdbHostnameTag, _ = os.Hostname()
 	}
+	log.Debug("influxdbHostnameTag: " + influxdbHostnameTag)
 
 	influxdbHost, _ = f.GetString("influxdb-host")
 	if influxdbHost == "" {
