@@ -116,7 +116,10 @@ func UpdateInfluxdbStats(report t.Report) {
 	//url := proto + hostname + ":" + port + path + "?db=" + org + "/" + bucket
 
 	// v1.8
-	url := influxdbHost + influxdbAPI + "?db=" + influxdbDatabase + "&rp=" + influxdbRetentionPolicy
+        url := influxdbHost + influxdbAPI + "?db=" + influxdbDatabase 
+        if len(influxdbRetentionPolicy) > 0 {
+                url += "&rp=" + influxdbRetentionPolicy
+        }
 
 	request, err := http.NewRequest("POST", url, reader)
 	if err != nil {
